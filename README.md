@@ -32,6 +32,7 @@ Airdop wallet, its usually jackpot
 - Auto Claim Mining / Farming
 - Auto Complete Missions (Completable Missions)
 - Auto Claim Mission Reward
+- Auto Break And Claim Diamond Reward
 - Multi Account With Proxy Support
 
 ## Prerequisite
