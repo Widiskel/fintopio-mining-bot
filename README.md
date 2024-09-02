@@ -100,7 +100,6 @@ To update bot follow this step :
    2. Enter Telegram Query
    3. Start The bot Again after account creation complete
 6.  after bot started choose option 3 start bot
-7.  if something wrong with your Account, reset Account (option 2) first or just delete problematic a, to cancel running bot press `ctrl+c` twice, and start again [from No 1.](#setup-session).
    
 
 ## Session Troubleshoot
