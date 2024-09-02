@@ -121,7 +121,7 @@ if you got error `Invalid ConstructorId` try to run this ```npm i telegram@2.22.
 
 ## CONTRIBUTE
 
-Feel free to fork and contribute adding more feature thanks.
+Feel free to fork and contribute adding more feature thanks. To get original unencrypted code just DM me on my social media original (index.js and src folder) are Obfuscated during build
 
 ## SUPPORT
 
