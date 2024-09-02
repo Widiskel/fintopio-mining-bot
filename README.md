@@ -12,6 +12,7 @@
   - [Update Bot](#update-bot)
   - [Setup Accounts](#setup-accounts)
   - [Session Troubleshoot](#session-troubleshoot)
+  - [Query Troubleshoot](#query-troubleshoot)
   - [Note](#note)
   - [CONTRIBUTE](#contribute)
   - [SUPPORT](#support)
@@ -106,7 +107,10 @@ To update bot follow this step :
 If you asked to enter phone number again after sessions creation, it mean session not initialized correctly, try to delete the created sessions. 
 
 Example Case
-- example you already have 1 session (sessionA) and all good when you run bot. After that you create another session, but when you run bot, the bot asked to enter phone number again, so the problem is on (sessionB), to fix it just remove the `accounts/sessionB` folder and re create it.
+- example you already have 1 session (sessionA) and all good when you run bot. After that you create another session, but when you run bot, the bot asked to enter phone number again, so the problem is on (sessionB), to fix it just remove the `accounts/sessionB` folder and re create it or just delete all folder inside `accounts` directory with prefix `sessions-`.
+
+## Query Troubleshoot
+if your bot get eror, with some error code `401` it mean your query expired, go get new query and run bot again and choose option `4` for query modification.
 
 ## Note
 
