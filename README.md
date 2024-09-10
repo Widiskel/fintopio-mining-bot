@@ -58,8 +58,8 @@ Airdop wallet, its usually jackpot
 3. run `npm i telegram@2.22.2`
 4. run `mkdir -p accounts && mkdir -p app/config`.
 5. run `cp config/config_tmp.js config/config.js && cp config/proxy_list_tmp config/proxy_list.js`.
-6. (If You Use Telegram Sessions) To configure the app, run `nano src/config/config.js` and add your telegram app id and hash there.
-7. (If You Use Proxy) To configure the Proxy, run `nano src/config/proxy_list.js` and add your proxy list there, it currently only support https proxy.
+6. (If You Use Telegram Sessions) To configure the app, run `nano config/config.js` and add your telegram app id and hash there.
+7. (If You Use Proxy) To configure the Proxy, run `nano config/proxy_list.js` and add your proxy list there, it currently only support https proxy.
 8. to start the app run `npm run start`.
    
 ### Windows
