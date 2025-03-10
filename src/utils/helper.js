@@ -1,0 +1,206 @@
+// import moment from "moment";
+import moment from "moment-timezone";
+import fs from "fs";
+import path from "path";
+import { parse, stringify } from "querystring";
+import twist from "./twist.js";
+
+export class Helper {
+  static delay = (ms, acc, msg, obj) => {
+    return new Promise((resolve) => {
+      let remainingMilliseconds = ms;
+
+      if (acc != undefined) {
+        twist.log(msg, acc, obj, `Delaying for ${this.msToTime(ms)}`);
+      } else {
+        twist.info(`Delaying for ${this.msToTime(ms)}`);
+      }
+
+      const interval = setInterval(() => {
+        remainingMilliseconds -= 1000;
+        if (acc != undefined) {
+          twist.log(
+            msg,
+            acc,
+            obj,
+            `Delaying for ${this.msToTime(remainingMilliseconds)}`
+          );
+        } else {
+          twist.info(`Delaying for ${this.msToTime(remainingMilliseconds)}`);
+        }
+
+        if (remainingMilliseconds <= 0) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 1000);
+
+      setTimeout(async () => {
+        clearInterval(interval);
+        await twist.clearInfo();
+        if (acc) {
+          twist.log(msg, acc, obj);
+        }
+        resolve();
+      }, ms);
+    });
+  };
+
+  static randomUserAgent() {
+    const list_useragent = [
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/125.0.6422.80 Mobile/15E148 Safari/604.1",
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 EdgiOS/125.2535.60 Mobile/15E148 Safari/605.1.15",
+      "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.6422.113 Mobile Safari/537.36 EdgA/124.0.2478.104",
+      "Mozilla/5.0 (Linux; Android 10; Pixel 3 XL) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.6422.113 Mobile Safari/537.36 EdgA/124.0.2478.104",
+      "Mozilla/5.0 (Linux; Android 10; VOG-L29) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.6422.113 Mobile Safari/537.36 OPR/76.2.4027.73374",
+      "Mozilla/5.0 (Linux; Android 10; SM-N975F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.6422.113 Mobile Safari/537.36 OPR/76.2.4027.73374",
+    ];
+    return list_useragent[Math.floor(Math.random() * list_useragent.length)];
+  }
+
+  static readTime(milliseconds) {
+    const date = moment.unix(milliseconds);
+    return date.format("YYYY-MM-DD HH:mm:ss");
+  }
+
+  static getCurrentTimestamp() {
+    const timestamp = moment().tz("Asia/Singapore").unix();
+    return timestamp.toString();
+  }
+
+  static getSession(sessionName) {
+    try {
+      const accountPath = "accounts";
+      if (!fs.existsSync(accountPath)) {
+        fs.mkdirSync(accountPath);
+      }
+      const files = fs.readdirSync(path.resolve(sessionName));
+      const session = [];
+      files.forEach((file) => {
+        session.push(file);
+      });
+      return session;
+    } catch (error) {
+      throw Error(`Error reading sessions directory: ${error},`);
+    }
+  }
+
+  static resetAccounts() {
+    try {
+      const directoryPath = path.resolve("accounts");
+      const files = fs.readdirSync(directoryPath);
+      console.log("Deleting Accounts...");
+
+      files.forEach((file) => {
+        const filePath = path.join(directoryPath, file);
+        console.log(filePath);
+        fs.rm(filePath, { recursive: true, force: true }, (err) => {
+          if (err) {
+            console.error(`Error deleting file ${filePath}:`, err);
+          }
+        });
+      });
+
+      console.info("Account reset successfully. Please restart the bot.");
+    } catch (error) {
+      console.error(`Error deleting accounts: ${error}`);
+      throw error;
+    }
+  }
+
+  static getQueryFromUrl(url) {
+    const query = url.split("tgWebAppData=")[1].split("&tgWebAppVersion=")[0];
+
+    return this.convertUrlEncodedString(query);
+  }
+
+  static convertUrlEncodedString(encodedStr) {
+    const decodedOnce = decodeURIComponent(encodedStr);
+    return decodedOnce;
+  }
+  static createDir(dirName) {
+    try {
+      const accountPaths = "accounts";
+      const dirPath = path.join(accountPaths, dirName);
+
+      if (!fs.existsSync(accountPaths)) {
+        fs.mkdirSync(accountPaths);
+      }
+
+      fs.mkdirSync(dirPath, { recursive: true });
+
+      console.log(dirPath);
+      return dirPath;
+    } catch (error) {
+      throw new Error(`Error creating directory: ${error}`);
+    }
+  }
+  static saveQueryFile(queryFilePath, query) {
+    const filePath = path.resolve(queryFilePath, "query.txt");
+
+    fs.writeFile(filePath, query, "utf8", (err) => {
+      if (err) {
+        console.error("Error writing file:", err);
+      } else {
+        console.log("Query File Created/Modified Successfully.");
+      }
+    });
+  }
+
+  static random(min, max) {
+    const rand = Math.floor(Math.random() * (max - min + 1)) + min;
+    return rand;
+  }
+
+  static msToTime(milliseconds) {
+    const hours = Math.floor(milliseconds / (1000 * 60 * 60));
+    const remainingMillisecondsAfterHours = milliseconds % (1000 * 60 * 60);
+    const minutes = Math.floor(remainingMillisecondsAfterHours / (1000 * 60));
+    const remainingMillisecondsAfterMinutes =
+      remainingMillisecondsAfterHours % (1000 * 60);
+    const seconds = Math.round(remainingMillisecondsAfterMinutes / 1000);
+
+    return `${hours} Hours ${minutes} Minutes ${seconds} Seconds`;
+  }
+
+  static queryToJSON(query) {
+    try {
+      const queryObject = {};
+      const pairs = query.split("&");
+
+      pairs.forEach((pair) => {
+        const [key, value] = pair.split("=");
+        if (key === "user") {
+          queryObject[key] = JSON.parse(decodeURIComponent(value));
+        } else {
+          queryObject[key] = decodeURIComponent(value);
+        }
+      });
+
+      return queryObject;
+    } catch (error) {
+      throw Error("Invalid Query");
+    }
+  }
+
+  static generateRandomString(length) {
+    const characters =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let result = "";
+    const charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+  }
+
+  static readQueryFile(queryPath) {
+    try {
+      const fullPath = path.resolve(queryPath);
+      const query = fs.readFileSync(fullPath, "utf8");
+      return query;
+    } catch (error) {
+      console.log("No query.txt Files Found");
+    }
+  }
+}

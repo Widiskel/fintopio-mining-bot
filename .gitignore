@@ -8,7 +8,7 @@ accounts/*
 src/reference/*
 package-lock.json
 .DS_Store
-build-config.json
-/index.js
-/src
+# build-config.json
+# /index.js
+# /src
 config/proxy_list.js
