@@ -11,9 +11,11 @@ async function operation(acc, query, queryObj, proxy) {
     const fintopio = new Fintopio(acc, query, queryObj, proxy);
     await fintopio.login();
     await fintopio.getUser(true);
+    await fintopio.getDiamondState();
+
     await fintopio.checkIn();
     await fintopio.startFarming();
-    await fintopio.getDiamondState();
+
     if (fintopio.diamond.state == "available") {
       await fintopio.claimDiamondReward();
     } else {
@@ -24,6 +26,9 @@ async function operation(acc, query, queryObj, proxy) {
         fintopio
       );
     }
+
+    await fintopio.playSpaceTapper();
+
     await fintopio.getTasks(true);
 
     for (const task of fintopio.tasks) {
@@ -37,8 +42,8 @@ async function operation(acc, query, queryObj, proxy) {
     }
 
     const claimFarmingTime = fintopio.farming.timings.finish;
-    const nextDiamondTime = fintopio.diamond.timings.nextAt;
-    const nextLoop = Date.now() + 60000 * 60;
+    const nextDiamondTime = fintopio.diamond.timings.availableTo;
+    const nextLoop = Date.now() + 60000 * 60 * 2;
 
     const delayToClaimFarming = claimFarmingTime - Date.now();
     const delayToNextDiamond = nextDiamondTime - Date.now();
@@ -74,14 +79,54 @@ async function operation(acc, query, queryObj, proxy) {
     );
     await operation(acc, query, queryObj, proxy);
   } catch (error) {
-    twist.clear(acc);
-    twist.clearInfo();
-    await Helper.delay(
-      10000,
-      acc,
-      `Error : ${error.message}, Retrying after 10 Second`
-    );
-    await operation(acc, query, queryObj, proxy);
+    if (error.message.includes("401")) {
+      if (acc.type == "query") {
+        await Helper.delay(
+          1000,
+          acc,
+          `Error : ${error.message}, Query Is Expired, Please Get New Query`
+        );
+      } else {
+        await Helper.delay(
+          5000,
+          acc,
+          `Error : ${error.message}, Query Is Expired, Getting New Query in 5 Seconds`
+        );
+        const tele = new Telegram();
+        await tele.useSession(acc.accounts, proxy);
+        const user = await tele.client.getMe();
+        user.type = "sessions";
+        user.accounts = acc.accounts;
+        user.id = user.id.value;
+        const query = await tele
+          .resolvePeer()
+          .then(async () => {
+            return await tele.initWebView();
+          })
+          .catch((err) => {
+            throw err;
+          });
+
+        const queryObj = Helper.queryToJSON(query);
+        await tele.disconnect();
+        await Helper.delay(5000, user, `Successfully get new query`);
+        await operation(user, query, queryObj, proxy);
+      }
+    } else if (error.message.includes("429")) {
+      await Helper.delay(
+        60000 * 5,
+        acc,
+        `Error : ${error.message}, Retrying after 5 Minutes`
+      );
+      await operation(acc, query, queryObj, proxy);
+    } else {
+      await Helper.delay(
+        5000,
+        acc,
+        `Error : ${error.message}, Retrying after 5 Seconds`
+      );
+      await operation(acc, query, queryObj, proxy);
+    }
   }
 }
 
@@ -115,6 +160,9 @@ async function startBot() {
           await tele.useSession("accounts/" + acc, proxy);
           tele.session = acc;
           const user = await tele.client.getMe();
+          user.type = "sessions";
+          user.accounts = "accounts/" + acc;
+          user.id = user.id.value;
           const query = await tele
             .resolvePeer()
             .then(async () => {
@@ -128,9 +176,17 @@ async function startBot() {
           await tele.disconnect();
           paramList.push([user, query, queryObj, proxy]);
         } else {
-          const query = Helper.readQueryFile("accounts/" + acc + "/query.txt");
-          const queryObj = Helper.queryToJSON(query);
+          let query = Helper.readQueryFile("accounts/" + acc + "/query.txt");
+          let queryObj = Helper.queryToJSON(query);
+          if (!queryObj.user) {
+            queryObj = await Helper.queryToJSON(
+              await Helper.launchParamToQuery(query)
+            );
+            query = await Helper.launchParamToQuery(query);
+          }
           const user = queryObj.user;
+          user.type = "query";
+          user.accounts = "accounts/" + acc;
           user.firstName = user.first_name;
           user.lastName = user.last_name;
           paramList.push([user, query, queryObj, proxy]);

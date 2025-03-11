@@ -1,17 +1,18 @@
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { Helper } from "../utils/helper.js";
 import logger from "../utils/logger.js";
+import https from "https";
+import fetch from "node-fetch";
 
 export class API {
   constructor(query, url, proxy) {
     this.url = url;
-    this.origin = url;
     this.ua = Helper.randomUserAgent();
     this.query = query;
     this.proxy = proxy;
   }
 
-  generateHeaders(token) {
+  async generateHeaders(token) {
     const headers = {
       Accept: "application/json, text/plain, */*",
       "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
@@ -19,67 +20,97 @@ export class API {
       "Sec-Fetch-Dest": "empty",
       "Sec-Fetch-Site": "same-site",
       "Sec-Fetch-Mode": "cors",
-      Host: this.host,
-      Origin: this.origin,
-      Referer: this.origin + "/",
+      "User-Agent": this.ua,
     };
 
     if (token) {
-      headers.Authorization = "Bearer " + token;
+      headers.Authorization = `Bearer ${token}`;
     }
 
     return headers;
   }
 
-  async fetch(endpoint, method, token, body = {}, additionalHeader = {}) {
+  async fetch(
+    endpoint,
+    method = "GET",
+    token,
+    body = {},
+    additionalHeader = {},
+    customUrl = false
+  ) {
     try {
-      const url = `${this.url}${endpoint}`;
+      const url = customUrl ? endpoint : `${this.url}${endpoint}`;
       const headers = {
+        ...(await this.generateHeaders(token)),
         ...additionalHeader,
-        ...this.generateHeaders(token),
       };
-      const options = {
-        headers,
-        method,
-      };
-      if (this.proxy) {
-        options.agent = new HttpsProxyAgent(this.proxy);
-      }
+
       logger.info(`${method} : ${url} ${this.proxy ? this.proxy : ""}`);
       logger.info(`Request Header : ${JSON.stringify(headers)}`);
+      logger.info(`Request Body : ${JSON.stringify(body)}`);
 
-      if (method !== "GET") {
-        options.body = `${JSON.stringify(body)}`;
-        logger.info(`Request Body : ${options.body}`);
-      }
-
+      const options = {
+        method,
+        headers,
+        agent: this.proxy
+          ? new HttpsProxyAgent(this.proxy)
+          : new https.Agent({ rejectUnauthorized: false }),
+        body: method !== "GET" ? JSON.stringify(body) : undefined,
+      };
       const res = await fetch(url, options);
 
-      logger.info(`Response : ${res.status} ${res.statusText}`);
-      if (res.ok || res.status == 400 || res.status == 403) {
-        const contentType = res.headers.get("content-type");
-        let data;
+      if (res.ok) {
+        const contentType = res.headers.get("Content-Type");
+        let responseData;
         if (contentType && contentType.includes("application/json")) {
-          data = {
-            ...(await res.json()),
-            status: res.status,
-          };
+          responseData = await res.json();
         } else {
-          data = {
-            status: res.status,
+          responseData = {
             message: await res.text(),
           };
         }
 
-        if (res.ok) data.status = 200;
-        logger.info(`Response Data : ${JSON.stringify(data)}`);
+        logger.info(`Response : ${res.status} ${res.statusText}`);
+        logger.info(
+          `Response Data : ${JSON.stringify(responseData).substring(0, 150)}...`
+        );
+
+        const data = {
+          status: res.ok ? 200 : res.status,
+          ...responseData,
+        };
+
         return data;
       } else {
-        throw new Error(`${res.status} - ${res.statusText}`);
+        throw res;
       }
     } catch (err) {
-      logger.error(`Error : ${err.message}`);
-      throw err;
+      if (err.status) {
+        const status = err.status;
+        const contentType = err.headers.get("Content-Type");
+        let responseData;
+        if (contentType && contentType.includes("application/json")) {
+          responseData = await err.json();
+        } else {
+          responseData = {
+            message: await err.text(),
+          };
+        }
+        if (status == 400 || status == 403) {
+          const data = {
+            status,
+            ...responseData,
+          };
+          return data;
+        } else if (status === 504 || status === 404) {
+          console.error("DETECT API CHANGE.. EXIT");
+          await process.exit();
+        } else {
+          throw Error(`${status} - ${err.message}`);
+        }
+      } else {
+        throw err;
+      }
     }
   }
 }

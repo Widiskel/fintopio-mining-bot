@@ -6,6 +6,7 @@ import logger from "../utils/logger.js";
 import { FloodWaitError } from "telegram/errors/RPCErrorList.js";
 import { Config } from "../../config/config.js";
 import { HttpsProxyAgent } from "https-proxy-agent";
+import { LogLevel } from "telegram/extensions/Logger.js";
 
 export class Telegram {
   storeSession;
@@ -14,6 +15,7 @@ export class Telegram {
     this.accountName = "accounts";
     this.url = "https://fintopio-tg.fintopio.com/";
     this.bot = "fintopio";
+    this.botShortname = "wallet";
   }
 
   async init() {
@@ -27,8 +29,18 @@ export class Telegram {
   }
   async onBoarding() {
     try {
-      let ctx =
-        "Welcome to Fintopio Bot \nBy : Widiskel \n \nLets getting started.\n\nYour Session List:\n";
+      let ctx = `Welcome 
+${Helper.showSkelLogo()}
+CATOPIA BOT
+By : Widiskel
+Follow On : https://github.com/Widiskel
+Join Channel : https://t.me/skeldrophunt
+
+  
+Lets getting started.
+  
+Your Session List:
+`;
       const accountList = Helper.getSession("accounts");
 
       if (accountList.length == 0) {
@@ -222,6 +234,7 @@ export class Telegram {
         Config.TELEGRAM_APP_HASH,
         clientOptions
       );
+      this.client.setLogLevel(LogLevel.ERROR);
       this.storeSession.save();
 
       await this.client.start({
@@ -234,7 +247,6 @@ export class Telegram {
           console.log(err.message);
         },
       });
-      console.log();
     } catch (error) {
       throw error;
     }
@@ -281,11 +293,11 @@ export class Telegram {
           peer: this.bot,
           app: new Api.InputBotAppShortName({
             botId: await this.client.getInputEntity(this.bot),
-            shortName: "wallet",
+            shortName: this.botShortname,
           }),
           writeAllowed: true,
           platform: "android",
-          startParam: `reflink-reflink_WBqDb0I3vuVe515o-`,
+          startParam: Helper.creator,
           compact: true,
         })
       );

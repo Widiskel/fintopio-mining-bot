@@ -4,7 +4,7 @@ import logger from "../utils/logger.js";
 
 export class Fintopio extends API {
   constructor(account, query, queryObj, proxy) {
-    super(query, "https://fintopio-tg.fintopio.com", proxy);
+    super(query, "https://api.fintopio.com", proxy);
     this.account = account;
     this.query = query;
     this.queryObj = queryObj;
@@ -14,7 +14,7 @@ export class Fintopio extends API {
     try {
       await Helper.delay(500, this.account, `Try to Login...`, this);
       const res = await this.fetch(
-        `/api/auth/telegram?${this.query}`,
+        `/auth/telegram?${this.query}`,
         "GET",
         undefined
       );
@@ -30,7 +30,7 @@ export class Fintopio extends API {
     try {
       if (msg)
         await Helper.delay(500, this.account, `Getting user data...`, this);
-      const res = await this.fetch("/api/referrals/data", "GET", this.token);
+      const res = await this.fetch("/fast/init", "GET", this.token);
 
       if (res.status == 200) {
         if (msg)
@@ -41,7 +41,8 @@ export class Fintopio extends API {
             this
           );
 
-        this.user = res;
+        this.user = res.profile;
+        this.balance = res.balance.balance;
       } else {
         await Helper.delay(5000, this.account, `Error : ${res.message}`, this);
       }
@@ -52,7 +53,7 @@ export class Fintopio extends API {
   async startFarming() {
     try {
       await Helper.delay(500, this.account, `Starting farm...`, this);
-      const res = await this.fetch("/api/farming/farm", "POST", this.token);
+      const res = await this.fetch("/farming/farm", "POST", this.token);
 
       if (res.status == 200) {
         await Helper.delay(
@@ -76,7 +77,7 @@ export class Fintopio extends API {
   async claimFarming() {
     try {
       await Helper.delay(500, this.account, `Claiming farming reward`, this);
-      const res = await this.fetch("/api/farming/claim", "POST", this.token);
+      const res = await this.fetch("/farming/claim", "POST", this.token);
 
       if (res.status == 200) {
         await Helper.delay(
@@ -98,7 +99,7 @@ export class Fintopio extends API {
   async checkIn() {
     try {
       await Helper.delay(500, this.account, `Try To Check In`, this);
-      const res = await this.fetch("/api/daily-checkins", "POST", this.token);
+      const res = await this.fetch("/daily-checkins", "POST", this.token);
 
       if (res.status == 200) {
         await Helper.delay(
@@ -117,7 +118,7 @@ export class Fintopio extends API {
   }
   async getFarmStatus() {
     try {
-      const res = await this.fetch("/api/farming/state", "GET", this.token);
+      const res = await this.fetch("/farming/state", "GET", this.token);
 
       if (res.status == 200) {
         this.farming = res;
@@ -130,10 +131,10 @@ export class Fintopio extends API {
   }
   async getDiamondState() {
     try {
-      const res = await this.fetch("/api/hold/fast/init", "GET", this.token);
+      const res = await this.fetch("/clicker/diamond/state", "GET", this.token);
 
       if (res.status == 200) {
-        this.diamond = res.clickerDiamondState;
+        this.diamond = res;
       } else {
         await Helper.delay(3000, this.account, res.message, this);
       }
@@ -141,6 +142,44 @@ export class Fintopio extends API {
       throw error;
     }
   }
+
+  async playSpaceTapper() {
+    try {
+      const score = Helper.random(1000, 2500);
+      const res = await this.fetch(
+        "/hold/space-tappers/add-new-result",
+        "POST",
+        this.token,
+        {
+          score: score,
+          holdPoints: score * 2,
+          collectedGems: [],
+          additionalGame: false,
+          additionalLiveBoosts: 0,
+          rocketSkins: [],
+        }
+      );
+
+      if (res.status == 200) {
+        await Helper.delay(
+          3000,
+          this.account,
+          `Successfully play space tapper with score ${score}`,
+          this
+        );
+      } else {
+        await Helper.delay(
+          3000,
+          this.account,
+          `Space Tapper ${res.message}`,
+          this
+        );
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async claimDiamondReward() {
     try {
       await Helper.delay(
@@ -150,7 +189,7 @@ export class Fintopio extends API {
         this
       );
       const res = await this.fetch(
-        "/api/clicker/diamond/complete",
+        "/clicker/diamond/complete",
         "POST",
         this.token,
         { diamondNumber: this.diamond.diamondNumber }
@@ -182,7 +221,7 @@ export class Fintopio extends API {
           `Getting available tasks....`,
           this
         );
-      const res = await this.fetch("/api/hold/tasks", "GET", this.token);
+      const res = await this.fetch("/hold/tasks", "GET", this.token);
 
       if (res.status == 200) {
         this.tasks = res.tasks;
@@ -209,7 +248,7 @@ export class Fintopio extends API {
         this
       );
       const res = await this.fetch(
-        `/api/hold/tasks/${task.id}/claim`,
+        `/hold/tasks/${task.id}/claim`,
         "POST",
         this.token
       );
@@ -239,7 +278,7 @@ export class Fintopio extends API {
         this
       );
       const res = await this.fetch(
-        `/api/hold/tasks/${task.id}/start`,
+        `/hold/tasks/${task.id}/start`,
         "POST",
         this.token
       );

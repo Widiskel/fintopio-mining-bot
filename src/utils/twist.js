@@ -23,7 +23,7 @@ class Twist {
     }
 
     const profile = fintopio.user ?? {};
-    const balance = profile.balance ?? "-";
+    const balance = fintopio.balance ?? "-";
     const farming = fintopio.farming ?? {};
     const farmingTime = farming.timings ?? {};
     const farmEndTime = farmingTime.finish ?? "-";
